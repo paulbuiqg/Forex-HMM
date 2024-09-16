@@ -21,6 +21,7 @@ RANDOM_STATE = check_random_state(33)
 #####
 
 def read_config() -> Tuple[int, int, int, int]:
+    """Parse YAML config file."""
     with open('config.yml', 'r') as file:
         config = yaml.safe_load(file)
     max_n_state = config['max_n_state']
@@ -162,41 +163,46 @@ def make_3_day_head_forecast_plot(df: pd.DataFrame, forecast: np.ndarray,
     df.index.names = ['Date']
     forecast_uni = np.squeeze(forecast[:,df.columns == pair,:])
     #
-    df_history = df[[pair]].iloc[-7:].reset_index()
+    df_history = df[[pair]].iloc[-14:].reset_index()
     last_date = df.index[-1]
     last_value = df[pair].iloc[-1]
     future_dates = [last_date + timedelta(days=i) for i in range(horizon + 1)]
     #
-    dfs_forecast = [pd.DataFrame({
-        'Date': future_dates,
-        pair: [last_value] + list(forecast_uni[:,i])
-    }) for i in range(n_forecast)]
+    # dfs_forecast = [pd.DataFrame({
+    #     'Date': future_dates,
+    #     pair: [last_value] + list(forecast_uni[:,i])
+    # }) for i in range(n_forecast)]
     dfs_quantile = [pd.DataFrame({
         'Date': future_dates,
         pair: [last_value] + list(np.quantile(forecast_uni, q=q, axis=1))
-    }) for q in [.05, .35, .65, .95]]
+    }) for q in [.05, .20, .35, .65, .80, .95]]
+
     #
     # Last values
-    fig1 = px.line(df_history, x='Date', y=pair, line_shape='spline')
-    # Monte Carlo forecasts
-    figs = [px.line(dfs_forecast[i], x='Date', y=pair, line_shape='spline')
-        for i in range(n_forecast)]
-    for f in figs:
-        f.update_traces(opacity=.1)
+    fig1 = px.line(df_history, x='Date', y=pair)
+    # # Monte Carlo forecasts
+    # figs = [px.line(dfs_forecast[i], x='Date', y=pair)
+    #     for i in range(n_forecast)]
+    # for f in figs:
+    #     f.update_traces(opacity=.1)
     # Quantile forecasts
-    fig_q05 = px.line(dfs_quantile[0], x='Date', y=pair, line_shape='spline')
-    fig_q05.update_traces(line_color='green', line_width=4)
-    fig_q35 = px.line(dfs_quantile[1], x='Date', y=pair, line_shape='spline')
-    fig_q35.update_traces(line_color='yellow', line_width=4)
-    fig_q65 = px.line(dfs_quantile[2], x='Date', y=pair, line_shape='spline')
-    fig_q65.update_traces(line_color='yellow', line_width=4)
-    fig_q95 = px.line(dfs_quantile[3], x='Date', y=pair, line_shape='spline')
-    fig_q95.update_traces(line_color='green', line_width=4)
+    fig_q05 = px.line(dfs_quantile[0], x='Date', y=pair)
+    fig_q05.update_traces(line_color='green', opacity=.5)
+    fig_q20 = px.line(dfs_quantile[1], x='Date', y=pair)
+    fig_q20.update_traces(line_color='yellow', opacity=.5)
+    fig_q35 = px.line(dfs_quantile[2], x='Date', y=pair)
+    fig_q35.update_traces(line_color='orange', opacity=.5)
+    fig_q65 = px.line(dfs_quantile[3], x='Date', y=pair)
+    fig_q65.update_traces(line_color='orange', opacity=.5)
+    fig_q80 = px.line(dfs_quantile[4], x='Date', y=pair)
+    fig_q80.update_traces(line_color='yellow', opacity=.5)
+    fig_q95 = px.line(dfs_quantile[5], x='Date', y=pair)
+    fig_q95.update_traces(line_color='green', opacity=.5)
     #
-    fig2 = go.Figure(data=fig1.data + fig_q05.data + fig_q35.data
-        + fig_q65.data + fig_q95.data)
-    for i in range(n_forecast):
-        fig2 = go.Figure(data=fig2.data + figs[i].data)
+    fig2 = go.Figure(data=fig1.data + fig_q05.data + fig_q20.data + fig_q35.data
+        + fig_q65.data + fig_q80.data + fig_q95.data)
+    # for i in range(n_forecast):
+    #     fig2 = go.Figure(data=fig2.data + figs[i].data)
     fig2.update_layout(title=pair)
     return fig2
 
