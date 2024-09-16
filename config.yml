@@ -1,0 +1,4 @@
+max_n_state: 20  # Maximum number of states
+n_train_init: 10  # Number of training initializations
+horizon: 2  # Number of days to forecast
+n_forecast: 300  # Number of forecast generations
