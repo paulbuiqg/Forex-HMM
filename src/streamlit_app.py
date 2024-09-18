@@ -1,3 +1,5 @@
+
+import pickle
 from datetime import datetime, timedelta
 from typing import Tuple
 
@@ -11,7 +13,7 @@ from hmmlearn.hmm import GaussianHMM
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import check_random_state
 
-from dataloading import get_exchange_rate
+from utils import compute_returns, get_time_window, make_exchange_rate_df
 
 
 API_KEY = 'W3BJBJ2JNXO46ZPO'
@@ -20,58 +22,12 @@ RANDOM_STATE = check_random_state(33)
 
 #####
 
-def read_config() -> Tuple[int, int, int, int]:
-    """Parse YAML config file."""
-    with open('config.yml', 'r') as file:
-        config = yaml.safe_load(file)
-    max_n_state = config['max_n_state']
-    n_train_init = config['n_train_init']
-    horizon = config['horizon']
-    n_forecast = config['n_forecast']
-    return max_n_state, n_train_init, horizon, n_forecast
 
 
-@st.cache_data
-def make_exchange_rate_df(start_date: str, end_date: str) -> pd.DataFrame:
-    df_usd = get_exchange_rate(API_KEY, 'USD', 'EUR', start_date, end_date)
-    df_usd = df_usd[['close']].rename(columns={'close': 'USD/EUR'})
-    df_gbp = get_exchange_rate(API_KEY, 'GBP', 'EUR', start_date, end_date)
-    df_gbp = df_gbp[['close']].rename(columns={'close': 'GBP/EUR'})
-    df_jpy = get_exchange_rate(API_KEY, 'JPY', 'EUR', start_date, end_date)
-    df_jpy = df_jpy[['close']].rename(columns={'close': 'JPY/EUR'})
-    df = pd.concat([df_usd, df_gbp, df_jpy], axis=1)
-    df = df.fillna(method='ffill')  # Impute missing values (forward filling)
-    df = df.dropna()
-    df = df.sort_index()
-    return df
-
-@st.cache_resource
-def train_model(X: np.ndarray, max_n_state: int, n_train_init: int
-    ) -> Tuple[StandardScaler, GaussianHMM]:
-    best_aic = None
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    for n_state in range(1, max_n_state):
-        best_ll = None
-        for _ in range(n_train_init):
-            model = GaussianHMM(n_components=n_state, random_state=RANDOM_STATE)
-            model.fit(X_scaled)
-            ll = model.score(X_scaled)
-            if not best_ll or best_ll < ll:
-                best_ll = ll
-                best_model = model
-        aic = best_model.aic(X_scaled)
-        print(n_state, aic)
-        if not best_aic or aic < best_aic:
-            best_aic = aic
-            final_model = best_model
-    return scaler, final_model
-
-@st.cache_data
-def forecast(X: np.ndarray, _scaler: StandardScaler, _model: GaussianHMM,
+def forecast(X: np.ndarray, scaler: StandardScaler, model: GaussianHMM,
     horizon: int, n_forecast: int) -> np.ndarray:
-    X_scaled = _scaler.transform(X)
-    states = _model.predict(X_scaled)
+    X_scaled = scaler.transform(X)
+    states = model.predict(X_scaled)
     ret_forecast = np.zeros((horizon, X.shape[1], n_forecast))
     for i in range(n_forecast):
         X_scaled_forecast = model.sample(horizon, random_state=RANDOM_STATE,
@@ -79,22 +35,22 @@ def forecast(X: np.ndarray, _scaler: StandardScaler, _model: GaussianHMM,
         ret_forecast[:,:,i] = scaler.inverse_transform(X_scaled_forecast)
     return ret_forecast
 
-@st.cache_data
-def get_time_window() -> Tuple[str, str]:
-    today = datetime.today()
-    end_date = datetime.strftime(today, '%Y-%m-%d')
-    start_date = datetime.strftime(
-        datetime(today.year - 3, today.month, today.day) + timedelta(days=1),
-        '%Y-%m-%d')
-    return start_date, end_date
+# @st.cache_data
+# def get_time_window() -> Tuple[str, str]:
+#     today = datetime.today()
+#     end_date = datetime.strftime(today, '%Y-%m-%d')
+#     start_date = datetime.strftime(
+#         datetime(today.year - 3, today.month, today.day) + timedelta(days=1),
+#         '%Y-%m-%d')
+#     return start_date, end_date
 
-@st.cache_data
-def compute_returns(df: pd.DataFrame) -> pd.DataFrame:
-    """Convert prices to (log-)returns."""
-    return pd.DataFrame(
-        data=np.log(df.iloc[:-1].values / df.iloc[1:].values),
-        index=df.iloc[1:].index,
-        columns=df.columns)
+# @st.cache_data
+# def compute_returns(df: pd.DataFrame) -> pd.DataFrame:
+#     """Convert prices to (log-)returns."""
+#     return pd.DataFrame(
+#         data=np.log(df.iloc[:-1].values / df.iloc[1:].values),
+#         index=df.iloc[1:].index,
+#         columns=df.columns)
 
 @st.cache_data
 def foret2pri(df: pd.DataFrame, forecast: np.ndarray,
@@ -154,12 +110,12 @@ def compute_forecast_stats(forecast: np.ndarray
 @st.cache_data
 def make_one_day_head_forecast_histogram(df: pd.DataFrame, pair: str
     ) -> go.Figure:
-    fig = px.histogram(df[pair], x=pair, histnorm='percent')
+    fig = px.histogram(df[pair], x=pair, histnorm='percent', nbins=15)
     return fig
 
 @st.cache_data
 def make_3_day_head_forecast_plot(df: pd.DataFrame, forecast: np.ndarray,
-    pair: str, horizon: int, n_forecast: int) -> go.Figure:
+    pair: str, horizon: int) -> go.Figure:
     df.index.names = ['Date']
     forecast_uni = np.squeeze(forecast[:,df.columns == pair,:])
     #
@@ -187,17 +143,17 @@ def make_3_day_head_forecast_plot(df: pd.DataFrame, forecast: np.ndarray,
     #     f.update_traces(opacity=.1)
     # Quantile forecasts
     fig_q05 = px.line(dfs_quantile[0], x='Date', y=pair)
-    fig_q05.update_traces(line_color='green', opacity=.5)
+    fig_q05.update_traces(line_color='green', line_dash='dash', opacity=.75)
     fig_q20 = px.line(dfs_quantile[1], x='Date', y=pair)
-    fig_q20.update_traces(line_color='yellow', opacity=.5)
+    fig_q20.update_traces(line_color='yellow', line_dash='dash', opacity=.75)
     fig_q35 = px.line(dfs_quantile[2], x='Date', y=pair)
-    fig_q35.update_traces(line_color='orange', opacity=.5)
+    fig_q35.update_traces(line_color='orange', line_dash='dash', opacity=.75)
     fig_q65 = px.line(dfs_quantile[3], x='Date', y=pair)
-    fig_q65.update_traces(line_color='orange', opacity=.5)
+    fig_q65.update_traces(line_color='orange', line_dash='dash', opacity=.75)
     fig_q80 = px.line(dfs_quantile[4], x='Date', y=pair)
-    fig_q80.update_traces(line_color='yellow', opacity=.5)
+    fig_q80.update_traces(line_color='yellow', line_dash='dash', opacity=.75)
     fig_q95 = px.line(dfs_quantile[5], x='Date', y=pair)
-    fig_q95.update_traces(line_color='green', opacity=.5)
+    fig_q95.update_traces(line_color='green', line_dash='dash', opacity=.75)
     #
     fig2 = go.Figure(data=fig1.data + fig_q05.data + fig_q20.data + fig_q35.data
         + fig_q65.data + fig_q80.data + fig_q95.data)
@@ -208,30 +164,45 @@ def make_3_day_head_forecast_plot(df: pd.DataFrame, forecast: np.ndarray,
 
 #####
 
-max_n_state, n_train_init, horizon, n_forecast = read_config()
+
+with open('config.yml', 'r') as file:
+    config = yaml.safe_load(file)
+max_n_state = config['max_n_state']
+n_train_init = config['n_train_init']
+horizon = config['horizon']
+n_forecast = config['n_forecast']
 
 st.title('Forex Forecaster')
 
 start_date, end_date = get_time_window()
 df = make_exchange_rate_df(start_date, end_date)
-st.text('Data loaded.')
 
 st.header('Exchange Rates')
 
 st.write(df)
 
-st.line_chart(df['USD/EUR'], x_label='Date', y_label='USD/EUR')
-st.line_chart(df['GBP/EUR'], x_label='Date', y_label='GBP/EUR')
-st.line_chart(df['JPY/EUR'], x_label='Date', y_label='JPY/EUR')
+df.index = df.index.set_names('Date')
+
+fig1 = px.line(df.reset_index(), x='Date', y='USD/EUR')
+fig2 = px.line(df.reset_index(), x='Date', y='GBP/EUR')
+fig3 = px.line(df.reset_index(), x='Date', y='JPY/EUR')
+
+st.plotly_chart(fig1)
+st.plotly_chart(fig2)
+st.plotly_chart(fig3)
 
 df_ret = compute_returns(df)
 
 X = df_ret.values
-scaler, model = train_model(X, max_n_state, n_train_init)
-st.text('Model trained.')
+
+with open('./model/scaler.pkl', 'rb') as file:
+    scaler = pickle.load(file)
+
+with open('./model/hmm.pkl', 'rb') as file:
+    hmm = pickle.load(file)
 
 # Log-return forecasts
-ret_forecast = forecast(X, scaler, model, horizon, n_forecast)
+ret_forecast = forecast(X, scaler, hmm, horizon, n_forecast)
 st.text('Forecast computed.')
 
 price_forecast = foret2pri(df, ret_forecast, horizon, n_forecast)
@@ -242,25 +213,25 @@ df_ahead, df_stats = compute_forecast_stats(price_forecast)
 
 st.write(df_stats.style.format(precision=6))
 
-fig = make_one_day_head_forecast_histogram(df_ahead, 'USD/EUR')
-st.plotly_chart(fig)
+col1, col2, col3 = st.columns(3)
 
-fig = make_one_day_head_forecast_histogram(df_ahead, 'GBP/EUR')
-st.plotly_chart(fig)
+fig1 = make_one_day_head_forecast_histogram(df_ahead, 'USD/EUR')
+fig2 = make_one_day_head_forecast_histogram(df_ahead, 'GBP/EUR')
+fig3 = make_one_day_head_forecast_histogram(df_ahead, 'JPY/EUR')
 
-fig = make_one_day_head_forecast_histogram(df_ahead, 'JPY/EUR')
-st.plotly_chart(fig)
+with col1:
+    st.plotly_chart(fig1, use_container_width=True)
+with col2:
+    st.plotly_chart(fig2, use_container_width=True)
+with col3:
+    st.plotly_chart(fig3, use_container_width=True)
 
 st.header('3-day-ahead Forecast')
 
-fig = make_3_day_head_forecast_plot(df, price_forecast, 'USD/EUR', horizon,
-    n_forecast)
-st.plotly_chart(fig)
+fig1 = make_3_day_head_forecast_plot(df, price_forecast, 'USD/EUR', horizon)
+fig2 = make_3_day_head_forecast_plot(df, price_forecast, 'GBP/EUR', horizon)
+fig3 = make_3_day_head_forecast_plot(df, price_forecast, 'JPY/EUR', horizon)
 
-fig = make_3_day_head_forecast_plot(df, price_forecast, 'GBP/EUR', horizon,
-    n_forecast)
-st.plotly_chart(fig)
-
-fig = make_3_day_head_forecast_plot(df, price_forecast, 'JPY/EUR', horizon,
-    n_forecast)
-st.plotly_chart(fig)
+st.plotly_chart(fig1)
+st.plotly_chart(fig2)
+st.plotly_chart(fig3)
