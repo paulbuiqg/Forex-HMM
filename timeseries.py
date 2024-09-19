@@ -1,13 +1,8 @@
 import plotly.express as px
 import streamlit as st
 
-from utils import get_time_window, make_exchange_rate_df
 
-
-start_date, end_date = get_time_window()
-df = make_exchange_rate_df(start_date, end_date)
-
-df.index = df.index.set_names('Date')
+df = st.session_state.data
 
 fig1 = px.line(df.reset_index(), x='Date', y='USD/EUR')
 fig2 = px.line(df.reset_index(), x='Date', y='GBP/EUR')
