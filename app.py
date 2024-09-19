@@ -16,7 +16,6 @@ from sklearn.utils import check_random_state
 from utils import compute_returns, get_time_window, make_exchange_rate_df
 
 
-API_KEY = 'W3BJBJ2JNXO46ZPO'
 RANDOM_STATE = check_random_state(33)
 
 
@@ -32,23 +31,6 @@ def forecast(X: np.ndarray, scaler: StandardScaler, model: GaussianHMM,
             currstate=states[-1])[0]
         ret_forecast[:,:,i] = scaler.inverse_transform(X_scaled_forecast)
     return ret_forecast
-
-# @st.cache_data
-# def get_time_window() -> Tuple[str, str]:
-#     today = datetime.today()
-#     end_date = datetime.strftime(today, '%Y-%m-%d')
-#     start_date = datetime.strftime(
-#         datetime(today.year - 3, today.month, today.day) + timedelta(days=1),
-#         '%Y-%m-%d')
-#     return start_date, end_date
-
-# @st.cache_data
-# def compute_returns(df: pd.DataFrame) -> pd.DataFrame:
-#     """Convert prices to (log-)returns."""
-#     return pd.DataFrame(
-#         data=np.log(df.iloc[:-1].values / df.iloc[1:].values),
-#         index=df.iloc[1:].index,
-#         columns=df.columns)
 
 @st.cache_data
 def foret2pri(df: pd.DataFrame, forecast: np.ndarray,
@@ -161,7 +143,6 @@ def make_3_day_head_forecast_plot(df: pd.DataFrame, forecast: np.ndarray,
     return fig2
 
 #####
-
 
 with open('config.yml', 'r') as file:
     config = yaml.safe_load(file)

@@ -14,7 +14,6 @@ from utils import (compute_returns, get_time_window,
 RANDOM_STATE = check_random_state(33)
 
 
-
 def train_model(X: np.ndarray, max_n_state: int, n_train_init: int
     ) -> Tuple[StandardScaler, GaussianHMM]:
     """Fit scaler and HMM to training data."""
@@ -22,7 +21,7 @@ def train_model(X: np.ndarray, max_n_state: int, n_train_init: int
     best_aic = None
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    for n_state in range(1, max_n_state):
+    for n_state in range(1, max_n_state + 1):
         best_ll = None
         for _ in range(n_train_init):
             model = GaussianHMM(n_components=n_state, random_state=RANDOM_STATE)

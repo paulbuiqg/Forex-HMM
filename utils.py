@@ -7,9 +7,6 @@ import requests
 import streamlit as st
 
 
-API_KEY = 'W3BJBJ2JNXO46ZPO'
-
-
 def get_time_window() -> Tuple[str, str]:
     """Return 3-year time window ending today."""
     today = datetime.today()
@@ -59,7 +56,8 @@ def get_exchange_rate(api_key: str, from_currency: str, to_currency: str,
     df.index = pd.to_datetime(df.index)
 
     # Filter by the start and end dates
-    df = df[(df.index >= pd.to_datetime(start_date)) & (df.index <= pd.to_datetime(end_date))]
+    df = df[(df.index >= pd.to_datetime(start_date))
+            & (df.index <= pd.to_datetime(end_date))]
 
     return df
 
@@ -68,11 +66,12 @@ def get_exchange_rate(api_key: str, from_currency: str, to_currency: str,
 @st.cache_data
 def make_exchange_rate_df(start_date: str, end_date: str) -> pd.DataFrame:
     """Return dataframe with exchange rate timeseries with date as index."""
-    df_usd = get_exchange_rate(API_KEY, 'USD', 'EUR', start_date, end_date)
+    api_key = st.secrets['api_key']
+    df_usd = get_exchange_rate(api_key, 'USD', 'EUR', start_date, end_date)
     df_usd = df_usd[['close']].rename(columns={'close': 'USD/EUR'})
-    df_gbp = get_exchange_rate(API_KEY, 'GBP', 'EUR', start_date, end_date)
+    df_gbp = get_exchange_rate(api_key, 'GBP', 'EUR', start_date, end_date)
     df_gbp = df_gbp[['close']].rename(columns={'close': 'GBP/EUR'})
-    df_jpy = get_exchange_rate(API_KEY, 'JPY', 'EUR', start_date, end_date)
+    df_jpy = get_exchange_rate(api_key, 'JPY', 'EUR', start_date, end_date)
     df_jpy = df_jpy[['close']].rename(columns={'close': 'JPY/EUR'})
     df = pd.concat([df_usd, df_gbp, df_jpy], axis=1)
     df = df.fillna(method='ffill')  # Impute missing values (forward filling)
@@ -88,4 +87,3 @@ def compute_returns(df: pd.DataFrame) -> pd.DataFrame:
         data=np.log(df.iloc[:-1].values / df.iloc[1:].values),
         index=df.iloc[1:].index,
         columns=df.columns)
-
