@@ -1,6 +1,4 @@
-"""
-Information page
-"""
+"""Information page"""
 
 
 import json

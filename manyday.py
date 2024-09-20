@@ -1,6 +1,4 @@
-"""
-Many-day ahead forecast visualization page
-"""
+"""Many-day ahead forecast visualization page"""
 
 
 from datetime import timedelta

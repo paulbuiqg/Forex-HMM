@@ -1,20 +1,11 @@
-from datetime import datetime, timedelta
-from typing import Tuple
+"""Functions for data downloading and preprocessing"""
+
 
 import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
 
-
-def get_time_window() -> Tuple[str, str]:
-    """Return 3-year time window ending today."""
-    today = datetime.today()
-    end_date = datetime.strftime(today, '%Y-%m-%d')
-    start_date = datetime.strftime(
-        datetime(today.year - 3, today.month, today.day) + timedelta(days=1),
-        '%Y-%m-%d')
-    return start_date, end_date
 
 def get_exchange_rate(api_key: str, from_currency: str, to_currency: str,
     start_date: str, end_date: str) -> pd.DataFrame:

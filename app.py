@@ -9,6 +9,7 @@ pairs (USD/EUR, GBP/EUR, JPY/EUR).
 
 
 import pickle
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -18,8 +19,7 @@ from hmmlearn.hmm import GaussianHMM
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import check_random_state
 
-from utils import (compute_returns, get_time_window,
-                   make_exchange_rate_df)
+from utils import compute_returns, make_exchange_rate_df
 
 
 RANDOM_STATE = check_random_state(33)
@@ -53,7 +53,11 @@ def foret2pri(df: pd.DataFrame, forecast: np.ndarray,
 
 st.title('Forex Forecaster')
 
-start_date, end_date = get_time_window()
+with open('config.yml', 'r') as file:
+    config = yaml.safe_load(file)
+start_date = config['start_training_date']
+end_date = datetime.strftime(datetime.today(), '%Y-%m-%d')
+
 df = make_exchange_rate_df(start_date, end_date)
 df.index = df.index.set_names('Date')
 

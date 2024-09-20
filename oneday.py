@@ -1,6 +1,4 @@
-"""
-One-day ahead forecast visualization page
-"""
+"""One-day ahead forecast visualization page"""
 
 
 from typing import Tuple

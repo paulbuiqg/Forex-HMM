@@ -1,10 +1,9 @@
-"""
-Train hidden Markov model (HMM) on Forex exchange rate data
-"""
+"""Train hidden Markov model (HMM) on Forex exchange rate data"""
 
 
 import json
 import pickle
+from datetime import datetime
 from typing import Tuple
 
 import numpy as np
@@ -13,8 +12,7 @@ from hmmlearn.hmm import GaussianHMM
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import check_random_state
 
-from utils import (compute_returns, get_time_window,
-                   make_exchange_rate_df)
+from utils import compute_returns, make_exchange_rate_df
 
 
 RANDOM_STATE = check_random_state(33)
@@ -49,15 +47,16 @@ if __name__ == '__main__':
 
     with open('config.yml', 'r') as file:
         config = yaml.safe_load(file)
+    start_date = config['start_training_date']
     max_n_state = config['max_n_state']
     n_train_init = config['n_train_init']
 
-    start_date, end_date = get_time_window()
+    end_date = datetime.strftime(datetime.today(), '%Y-%m-%d')
+
     df = make_exchange_rate_df(start_date, end_date)
-
     df_ret = compute_returns(df)
-
     X = df_ret.values
+
     scaler, hmm = train_model(X, max_n_state, n_train_init)
 
     with open('model/training_dates.json', 'w') as file:

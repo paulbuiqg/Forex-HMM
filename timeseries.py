@@ -1,6 +1,4 @@
-"""
-Time series visualization page
-"""
+"""Time series visualization page"""
 
 
 import plotly.express as px
