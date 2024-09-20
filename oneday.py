@@ -1,4 +1,8 @@
-import pickle
+"""
+One-day ahead forecast visualization page
+"""
+
+
 from typing import Tuple
 
 import numpy as np
@@ -6,12 +10,14 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-import yaml
 
+
+### Functions ###
 
 @st.cache_data
 def compute_forecast_stats(forecast: np.ndarray
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Compute summary statistics for 1-day-ahead exchange rate forecasts."""
     df_ahead = pd.DataFrame(
         columns=['USD/EUR', 'GBP/EUR', 'JPY/EUR'],
         data=forecast[0,:,:].T
@@ -58,9 +64,14 @@ def compute_forecast_stats(forecast: np.ndarray
 @st.cache_data
 def make_one_day_head_forecast_histogram(df: pd.DataFrame, pair: str
     ) -> go.Figure:
+    """
+    Create a histogram of 1-day-ahead forecast values for a given currency
+    pair.
+    """
     fig = px.histogram(df[pair], x=pair, histnorm='percent', nbins=15)
     return fig
 
+######
 
 price_forecast = st.session_state.price_forecast
 

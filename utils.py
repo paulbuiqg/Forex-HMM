@@ -16,12 +16,14 @@ def get_time_window() -> Tuple[str, str]:
         '%Y-%m-%d')
     return start_date, end_date
 
-
 def get_exchange_rate(api_key: str, from_currency: str, to_currency: str,
     start_date: str, end_date: str) -> pd.DataFrame:
+    """
+    Fetch historical foreign exchange rate data between two currencies from
+    the Alpha Vantage API.
+    """
     # Alpha Vantage API endpoint for Forex Daily data
     url = 'https://www.alphavantage.co/query'
-
     # Define API parameters
     params = {
         'function': 'FX_DAILY',
@@ -30,38 +32,27 @@ def get_exchange_rate(api_key: str, from_currency: str, to_currency: str,
         'apikey': api_key,
         'outputsize': 'full'  # Full will give us all the data
     }
-
     # Make the request to the API
     response = requests.get(url, params=params)
     data = response.json()
-
     # Check if the data is valid
     if 'Time Series FX (Daily)' not in data:
         print(f"Error: {data}")
         return None
-
     # Extract time series data
     time_series = data['Time Series FX (Daily)']
-
     # Convert the time series to a DataFrame
     df = pd.DataFrame.from_dict(time_series, orient='index')
-
     # Rename columns for clarity
     df.columns = ['open', 'high', 'low', 'close']
-
     # Convert columns to float
     df = df.astype(float)
-
     # Convert the index to datetime
     df.index = pd.to_datetime(df.index)
-
     # Filter by the start and end dates
     df = df[(df.index >= pd.to_datetime(start_date))
             & (df.index <= pd.to_datetime(end_date))]
-
     return df
-
-
 
 @st.cache_data
 def make_exchange_rate_df(start_date: str, end_date: str) -> pd.DataFrame:
@@ -78,7 +69,6 @@ def make_exchange_rate_df(start_date: str, end_date: str) -> pd.DataFrame:
     df = df.dropna()
     df = df.sort_index()
     return df
-
 
 @st.cache_data
 def compute_returns(df: pd.DataFrame) -> pd.DataFrame:

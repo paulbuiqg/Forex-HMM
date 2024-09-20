@@ -1,3 +1,9 @@
+"""
+Train hidden Markov model (HMM) on Forex exchange rate data
+"""
+
+
+import json
 import pickle
 from typing import Tuple
 
@@ -41,7 +47,6 @@ def train_model(X: np.ndarray, max_n_state: int, n_train_init: int
 
 if __name__ == '__main__':
 
-
     with open('config.yml', 'r') as file:
         config = yaml.safe_load(file)
     max_n_state = config['max_n_state']
@@ -54,6 +59,9 @@ if __name__ == '__main__':
 
     X = df_ret.values
     scaler, hmm = train_model(X, max_n_state, n_train_init)
+
+    with open('model/training_dates.json', 'w') as file:
+        json.dump({'start_date': start_date, 'end_date': end_date}, file)
 
     with open('model/scaler.pkl', 'wb') as file:
         pickle.dump(scaler, file)

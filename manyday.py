@@ -1,3 +1,8 @@
+"""
+Many-day ahead forecast visualization page
+"""
+
+
 from datetime import timedelta
 
 import numpy as np
@@ -7,9 +12,15 @@ import plotly.graph_objects as go
 import streamlit as st
 
 
+### Function ###
+
 @st.cache_data
 def make_3_day_head_forecast_plot(df: pd.DataFrame, forecast: np.ndarray,
     pair: str, horizon: int) -> go.Figure:
+    """
+    Generate a 3-day-ahead forecast plot with historical data and forecast
+    quantiles.
+    """
     df.index.names = ['Date']
     forecast_uni = np.squeeze(forecast[:,df.columns == pair,:])
     #
@@ -42,6 +53,7 @@ def make_3_day_head_forecast_plot(df: pd.DataFrame, forecast: np.ndarray,
     fig2.update_layout(title=pair)
     return fig2
 
+######
 
 df = st.session_state.data
 price_forecast = st.session_state.price_forecast
