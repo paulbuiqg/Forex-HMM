@@ -1,4 +1,4 @@
-start_training_date: '2000-01-01'
+start_training_date: '2020-01-01'
 max_n_state: 30  # Maximum number of states
 n_train_init: 10  # Number of training initializations
 horizon: 6  # Number of days to forecast

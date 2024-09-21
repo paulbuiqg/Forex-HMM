@@ -50,7 +50,6 @@ if __name__ == '__main__':
     start_date = config['start_training_date']
     max_n_state = config['max_n_state']
     n_train_init = config['n_train_init']
-
     end_date = datetime.strftime(datetime.today(), '%Y-%m-%d')
 
     df = make_exchange_rate_df(start_date, end_date)
@@ -58,6 +57,9 @@ if __name__ == '__main__':
     X = df_ret.values
 
     scaler, hmm = train_model(X, max_n_state, n_train_init)
+
+    start_date = datetime.strftime(df.index[0], '%Y-%m-%d')
+    end_date = datetime.strftime(df.index[-1], '%Y-%m-%d')
 
     with open('model/training_dates.json', 'w') as file:
         json.dump({'start_date': start_date, 'end_date': end_date}, file)
