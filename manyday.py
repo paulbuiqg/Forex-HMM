@@ -54,13 +54,13 @@ def make_3_day_head_forecast_plot(df: pd.DataFrame, forecast: np.ndarray,
 ######
 
 """
-The orange dashed lines represent the 35th and 65th percentiles of the
+The **orange** dashed lines represent the **35th** and **65th** percentiles of the
 forecast distribution.
 
-The yellow dashed lines represent the 20th and 80th percentiles of the
+The **yellow** dashed lines represent the **20th** and **80th** percentiles of the
 forecast distribution.
 
-The red dashed lines represent the 5th and 95th percentiles of the
+The **red** dashed lines represent the **5th** and **95th** percentiles of the
 forecast distribution.
 """
 
