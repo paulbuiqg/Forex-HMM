@@ -56,7 +56,7 @@ def make_exchange_rate_df(start_date: str, end_date: str) -> pd.DataFrame:
     df_jpy = get_exchange_rate(api_key, 'JPY', 'EUR', start_date, end_date)
     df_jpy = df_jpy[['close']].rename(columns={'close': 'JPY/EUR'})
     df = pd.concat([df_usd, df_gbp, df_jpy], axis=1)
-    df = df.fillna(method='ffill')  # Impute missing values (forward filling)
+    df = df.ffill()  # Impute missing values (forward filling)
     df = df.dropna()
     df = df.sort_index()
     return df
